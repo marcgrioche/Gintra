@@ -1,0 +1,47 @@
+How to Use This Chrome Extension
+This extension will allow you to extract events from your intranet page and either:
+
+Export them as an ICS file (which can be imported into Google Calendar)
+Directly sync them with your Google Calendar
+
+Setup Instructions:
+
+Create a new directory for your extension
+Create these files in the directory:
+
+manifest.json
+content.js
+popup.html
+popup.js
+background.js
+
+
+Create an images directory and add icon images (16px, 48px, and 128px)
+Set up Google OAuth:
+
+Go to the Google Cloud Console
+Create a new project
+Enable the Google Calendar API
+Create OAuth credentials for a Chrome extension
+Update the manifest.json file with your client ID
+
+
+Load the extension in Chrome:
+
+Go to chrome://extensions/
+Enable "Developer mode"
+Click "Load unpacked" and select your extension directory
+
+
+
+How It Works:
+
+The extension finds all elements on the page with "event_registered" class (registered events)
+It extracts relevant information like course name, time, room, etc.
+It lets you export this data as an ICS file or sync directly with Google Calendar
+
+Customization Tips:
+
+Update the host permissions in manifest.json to match your actual intranet domain
+Modify the event extraction logic in content.js if your HTML structure differs
+Add date detection to handle proper calendar dates (currently uses current date as placeholder)
