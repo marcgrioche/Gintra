@@ -155,7 +155,6 @@ function extractRegisteredEvents() {
                     if (betterCourse) course = betterCourse;
                 }
 
-                // Extract activity
                 if (activity.startsWith(course)) {
                     activity = activity.replace(course, '').replace(/^[-»\s]+/, '');
                 }
@@ -173,21 +172,27 @@ function extractRegisteredEvents() {
                 // Daily/weekly view parsing
                 const courseInfo = lines[0] || '';
                 const [groupAndCourse, activityText] = courseInfo.split('»').map(s => s.trim());
-                [group, course] = (groupAndCourse || '').split('-').map(s => s.trim());
+                // Split only at the first hyphen to preserve course names with hyphens
+                const firstHyphenIndex = (groupAndCourse || '').indexOf('-');
+                if (firstHyphenIndex !== -1) {
+                    group = groupAndCourse.substring(0, firstHyphenIndex).trim();
+                    course = groupAndCourse.substring(firstHyphenIndex + 1).trim();
+                } else {
+                    group = '';
+                    course = groupAndCourse || '';
+                }
                 activity = activityText || '';
             }
 
             // Find room info using multiple patterns
             let roomMatch = null;
-            let room = 'Unknown Room', capacity = '';
+            let room = 'Unknown Room';
 
             if (viewType === 'monthly') {
                 const titleAttr = element.getAttribute('title') || '';
 
                 // Try different room patterns
                 roomMatch =
-                    // Room with capacity: "123 (45)"
-                    titleAttr.match(/\b(\d{3})\s*\((.*?)\)/) ||
                     // Room number in title: "Activity in 123"
                     titleAttr.match(/\b(?:salle|room)?\s*(\d{3})\b/i) ||
                     // Just the room number
@@ -196,9 +201,7 @@ function extractRegisteredEvents() {
 
             // If not found in title, try the text content
             if (!roomMatch) {
-                roomMatch =
-                    eventText.match(/\b(\d{3})\s*\((.*?)\)/) ||
-                    eventText.match(/\b(?:salle|room)?\s*(\d{3})\b/i);
+                roomMatch = eventText.match(/\b(?:salle|room)?\s*(\d{3})\b/i);
             }
 
             // Last attempt - look for 3-digit number in specific lines
@@ -211,7 +214,6 @@ function extractRegisteredEvents() {
 
             if (roomMatch) {
                 room = roomMatch[1];
-                capacity = roomMatch[2] || '';
             }
 
             // Find time info based on view type
@@ -304,7 +306,6 @@ function extractRegisteredEvents() {
                 course,
                 activity,
                 room,
-                capacity,
                 time: `${startTime} - ${endTime}`,
                 date: eventDate
             });
@@ -316,7 +317,6 @@ function extractRegisteredEvents() {
                     course,
                     activity,
                     room,
-                    capacity,
                     startTime: startDateTime ? startDateTime.toISOString() : null,
                     endTime: endDateTime ? endDateTime.toISOString() : null,
                     rawText: eventText, // Keep raw text for debugging
