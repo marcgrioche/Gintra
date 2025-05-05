@@ -19,11 +19,35 @@ function detectLanguage() {
 
 function detectViewType() {
     const calendar = document.querySelector('.calendar.planner');
-    if (calendar) {
-        if (calendar.classList.contains('daysview')) return 'daily';
-        if (calendar.classList.contains('weeksview')) return 'monthly';
-    }
+    if (!calendar) return 'unknown';
+
+    // Check for weekly view by counting day headers
+    const dayHeaders = document.querySelectorAll('th');
+    const weeklyHeaders = Array.from(dayHeaders).filter(th =>
+        th.textContent.match(/(Lun|Mar|Mer|Jeu|Ven|Sam|Dim)[a-z]* \d{1,2}\/\d{1,2}/)
+    );
+
+    if (weeklyHeaders.length === 7) return 'weekly';
+    if (calendar.classList.contains('daysview')) return 'daily';
+    if (calendar.classList.contains('weeksview')) return 'monthly';
     return 'unknown';
+}
+
+function parseWeeklyDate(event) {
+    const cell = event.closest('td');
+    const columnIndex = cell ? cell.cellIndex : -1;
+    const headers = Array.from(document.querySelectorAll('th'))
+        .filter(th => th.textContent.match(/(Lun|Mar|Mer|Jeu|Ven|Sam|Dim)[a-z]* \d{1,2}\/\d{1,2}/));
+    const matchingHeader = headers.find(h => h.cellIndex === columnIndex);
+
+    if (matchingHeader) {
+        const dateMatch = matchingHeader.textContent.match(/\d{1,2}\/\d{1,2}/);
+        if (dateMatch) {
+            const [day, month] = dateMatch[0].split('/').map(Number);
+            return new Date(new Date().getFullYear(), month - 1, day);
+        }
+    }
+    return new Date();
 }
 
 function parseDateFromText(dateText, viewType) {
@@ -53,6 +77,11 @@ function parseDateFromText(dateText, viewType) {
             }
         }
 
+        // Handle weekly view - element is passed in from the calling context
+        if (viewType === 'weekly' && arguments[2]) {
+            return parseWeeklyDate(arguments[2]);
+        }
+
         return date;
     } catch (e) {
         console.error("Date parsing error:", e);
@@ -64,24 +93,24 @@ function extractRegisteredEvents() {
     const viewType = detectViewType();
     const events = [];
 
-    // Find events based on view type
-    let eventElements;
-    if (viewType === 'monthly') {
-        // For monthly view, get certain types of events from the calendar grid
-        eventElements = Array.from(document.querySelectorAll('.appoint.singleday'))
-            .filter(el => {
-                // Keep only certain types of events and ensure they're in the grid
-                return el.closest('.appcont') && (
-                    el.classList.contains('rdv') ||     // Appointments/Reviews
-                    el.classList.contains('class') ||   // Classes
-                    el.classList.contains('tp') ||      // Practical work
-                    el.classList.contains('exam')       // Exams
-                );
-            });
-    } else {
-        // For daily/weekly view, use regular event detection
-        eventElements = document.querySelectorAll('.event_registered');
-    }
+            // Find events based on view type
+            let eventElements = [];
+            if (viewType === 'monthly') {
+                // For monthly view, get certain types of events from the calendar grid
+                eventElements = Array.from(document.querySelectorAll('.appoint.singleday'))
+                    .filter(el => {
+                        // Keep only certain types of events and ensure they're in the grid
+                        return el.closest('.appcont') && (
+                            el.classList.contains('rdv') ||     // Appointments/Reviews
+                            el.classList.contains('class') ||   // Classes
+                            el.classList.contains('tp') ||      // Practical work
+                            el.classList.contains('exam')       // Exams
+                        );
+                    });
+            } else {
+                // For daily/weekly view, use regular event detection
+                eventElements = document.querySelectorAll('.event_registered');
+            }
 
     // Get the current month view dates if in monthly view
     let monthDates = new Map();
@@ -274,13 +303,15 @@ function extractRegisteredEvents() {
                         }
                     }
                 }
+            } else if (viewType === 'weekly') {
+                eventDate = parseWeeklyDate(element);
             } else if (element.closest('.planning-week-day')) {
                 const dayHeader = element.closest('.planning-week-day').querySelector('.day-header');
-                eventDate = parseDateFromText(dayHeader?.textContent || currentDate, viewType);
+                eventDate = parseDateFromText(dayHeader?.textContent || currentDate, viewType, element);
             }
 
             if (!eventDate) {
-                eventDate = parseDateFromText(currentDate, viewType);
+                eventDate = parseDateFromText(currentDate, viewType, element);
             }
 
             // Create datetime objects
@@ -297,6 +328,14 @@ function extractRegisteredEvents() {
                 endDateTime.setHours(endHours, endMinutes, 0);
             }
 
+            // Format the date for display
+            const formatDate = (date) => {
+                if (!date) return '';
+                const lang = detectLanguage();
+                const options = { day: 'numeric', month: 'long', year: 'numeric' };
+                return date.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB', options);
+            };
+
             // Debug log for event parsing
             console.debug('Event parsing:', {
                 viewType,
@@ -307,11 +346,22 @@ function extractRegisteredEvents() {
                 activity,
                 room,
                 time: `${startTime} - ${endTime}`,
-                date: eventDate
+                date: eventDate,
+                formattedDate: formatDate(eventDate)
             });
 
             // Validate and create the event object
             if (group && course && startTime && endTime && room !== 'Unknown Room') {
+                // Create the display text with date and time
+                const displayDate = formatDate(eventDate);
+                const displayTime = `${startTime} - ${endTime}`;
+                const eventDetails = `${displayDate} ${displayTime}`;
+
+                // Modify the event text to include the date at the beginning
+                const lines = eventText.split('\n');
+                lines[0] = `${displayDate} - ${lines[0]}`; // Add date to first line
+                const modifiedText = lines.join('\n');
+
                 events.push({
                     group,
                     course,
@@ -319,7 +369,10 @@ function extractRegisteredEvents() {
                     room,
                     startTime: startDateTime ? startDateTime.toISOString() : null,
                     endTime: endDateTime ? endDateTime.toISOString() : null,
-                    rawText: eventText, // Keep raw text for debugging
+                    displayDate,
+                    displayTime,
+                    eventDetails,
+                    rawText: modifiedText, // Use modified text with date
                     language: detectLanguage() // Add language info for debugging
                 });
             }

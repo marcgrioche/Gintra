@@ -100,16 +100,22 @@ document.addEventListener('DOMContentLoaded', function() {
         eventItem.className = 'event-item';
 
         // Format date and time for display
+        const date = new Date(event.startTime);
+        const formattedDate = date.toLocaleDateString(event.language === 'fr' ? 'fr-FR' : 'en-GB', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
         const startTime = formatDateTime(event.startTime);
         const endTime = formatDateTime(event.endTime);
-        const timeDisplay = `${startTime} - ${endTime}`;
 
         // Create event display HTML
         eventItem.innerHTML = `
           <div><strong>${event.group} - ${event.course}</strong></div>
           <div><em>${event.activity || 'No activity specified'}</em></div>
           <div>Room ${event.room}</div>
-          <div>${formatDateTime(event.startTime)} - ${formatDateTime(event.endTime)}</div>
+          <div>${formattedDate}</div>
+          <div>${startTime} - ${endTime}</div>
         `;
 
         eventListElement.appendChild(eventItem);
