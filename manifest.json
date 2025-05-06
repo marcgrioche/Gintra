@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Intranet Calendar Sync",
+    "name": "Gintra calendar sync ",
     "version": "1.0",
     "description": "Extract registered events from intranet and sync with Google Calendar",
     "permissions": [
@@ -37,7 +37,7 @@
       "service_worker": "background.js"
     },
     "oauth2": {
-      "client_id": "407033853944-nrcl6ekdibbuki4g870k9tuuat08p0qh.apps.googleusercontent.com",
+      "client_id": "397277221888-iv420epc90magoihsok794boe3tm92kt.apps.googleusercontent.com",
       "scopes": [
         "https://www.googleapis.com/auth/calendar"
       ]
