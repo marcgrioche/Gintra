@@ -160,15 +160,21 @@ function extractRegisteredEvents() {
                 const titleAttr = element.getAttribute('title') || '';
                 const pText = element.querySelector('p')?.textContent.trim() || '';
 
-                // First try to get group and course from paragraph text
-                if (pText.includes(' - ')) {
-                    [group, course] = pText.split(' - ').map(s => s.trim());
-                } else if (pText.match(/^G\d+/)) {
+                // Clean up the text first
+                const cleanedPText = pText
+                    .replace(/\s*\(\d+(?:\s*\/\s*\d+)?\)/g, '') // Remove room capacity (both formats)
+                    .replace(/\d{2}:\d{2}\s*[–-]\s*\d{2}:\d{2}/g, '') // Remove time
+                    .trim();
+
+                // First try to get group and course from cleaned paragraph text
+                if (cleanedPText.includes(' - ')) {
+                    [group, course] = cleanedPText.split(' - ').map(s => s.trim());
+                } else if (cleanedPText.match(/^G\d+/)) {
                     // If p text starts with group number
-                    group = pText.match(/^(G\d+)/)[1];
-                    course = pText.replace(/^G\d+\s*-?\s*/, '').trim();
+                    group = cleanedPText.match(/^(G\d+)/)[1];
+                    course = cleanedPText.replace(/^G\d+\s*-?\s*/, '').trim();
                 } else {
-                    course = pText;
+                    course = cleanedPText;
                 }
 
                 // Get activity from title (everything before the time info)
@@ -200,7 +206,12 @@ function extractRegisteredEvents() {
             } else {
                 // Daily/weekly view parsing
                 const courseInfo = lines[0] || '';
-                const [groupAndCourse, activityText] = courseInfo.split('»').map(s => s.trim());
+                // First clean up the capacity and time information
+                let cleanedInfo = courseInfo
+                    .replace(/\s*\(\d+(?:\s*\/\s*\d+)?\)/g, '') // Remove room capacity (both formats)
+                    .replace(/\d{2}:\d{2}\s*[–-]\s*\d{2}:\d{2}/g, ''); // Remove time
+
+                const [groupAndCourse, activityText] = cleanedInfo.split('»').map(s => s.trim());
                 // Split only at the first hyphen to preserve course names with hyphens
                 const firstHyphenIndex = (groupAndCourse || '').indexOf('-');
                 if (firstHyphenIndex !== -1) {
@@ -393,3 +404,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     return true;  // Required for async response
 });
+
+console.log('Gintra Calendar content script loaded!');
+(function injectDebugFunctions() {
+    const script = document.createElement('script');
+    script.textContent = `
+        window.gintraDebug = {
+            detectView: function() {
+                console.log('Detecting view type...');
+                return "${detectViewType()}";  // Get current value
+            },
+            extractEvents: function() {
+                console.log('This function will work when called from content script context');
+                return [];  // Placeholder for page context
+            },
+            parseWeekly: function(element) {
+                console.log('This function requires element reference from content script');
+                return null;
+            }
+        };
+        console.log('Debug functions injected into page context! Try using gintraDebug.detectView() now');
+    `;
+    document.head.appendChild(script);
+    script.remove();  // Clean up after execution
+})();
