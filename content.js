@@ -372,6 +372,8 @@ function extractRegisteredEvents() {
                 const lines = eventText.split('\n');
                 lines[0] = `${displayDate} - ${lines[0]}`; // Add date to first line
                 const modifiedText = lines.join('\n');
+                // Store original group value and perform swap
+                const originalGroup = group;
                 let temp = group;
                 group = activity;
                 activity = course;
@@ -381,6 +383,7 @@ function extractRegisteredEvents() {
                     group,
                     course,
                     activity,
+                    originalGroup,  // Add original group for color coding
                     room,
                     startTime: startDateTime ? startDateTime.toISOString() : null,
                     endTime: endDateTime ? endDateTime.toISOString() : null,
