@@ -372,6 +372,10 @@ function extractRegisteredEvents() {
                 const lines = eventText.split('\n');
                 lines[0] = `${displayDate} - ${lines[0]}`; // Add date to first line
                 const modifiedText = lines.join('\n');
+                let temp = group;
+                group = activity;
+                activity = course;
+                course = temp;
 
                 events.push({
                     group,
@@ -404,27 +408,3 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     return true;  // Required for async response
 });
-
-console.log('Gintra Calendar content script loaded!');
-(function injectDebugFunctions() {
-    const script = document.createElement('script');
-    script.textContent = `
-        window.gintraDebug = {
-            detectView: function() {
-                console.log('Detecting view type...');
-                return "${detectViewType()}";  // Get current value
-            },
-            extractEvents: function() {
-                console.log('This function will work when called from content script context');
-                return [];  // Placeholder for page context
-            },
-            parseWeekly: function(element) {
-                console.log('This function requires element reference from content script');
-                return null;
-            }
-        };
-        console.log('Debug functions injected into page context! Try using gintraDebug.detectView() now');
-    `;
-    document.head.appendChild(script);
-    script.remove();  // Clean up after execution
-})();

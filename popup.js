@@ -111,8 +111,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Create event display HTML
         eventItem.innerHTML = `
-          <div><strong>${event.group} - ${event.course}</strong></div>
-          <div><em>${event.activity || 'No activity specified'}</em></div>
+          <div><strong>${event.group}</strong></div>
+          <div><em>${event.activity || 'No activity specified'} - ${event.course} </em></div>
           <div>Room ${event.room}</div>
           <div>${formattedDate}</div>
           <div>${startTime} - ${endTime}</div>
